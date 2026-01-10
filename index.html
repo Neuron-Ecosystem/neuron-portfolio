@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neuron Portfolio</title>
+    <style>
+        body {
+            background: #050505;
+            color: white;
+            font-family: sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            text-align: center;
+            border: 1px solid #1a1a1a;
+            padding: 40px;
+            border-radius: 20px;
+            background: #0a0a0a;
+            width: 300px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin: 0 0 20px 0;
+            background: linear-gradient(#fff, #444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        input {
+            background: #111;
+            border: 1px solid #333;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            text-align: center;
+            outline: none;
+        }
+
+        button {
+            background: white;
+            color: black;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #msg {
+            margin-top: 20px;
+            color: #00ff95;
+            font-family: monospace;
+            font-size: 0.9rem;
+            display: none;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="main-card">
+        <h1>NEURON</h1>
+        <input type="text" id="inviteInput" placeholder="ВВЕДИТЕ КОД">
+        <button id="checkBtn">ВОЙТИ</button>
+        <div id="msg"></div>
+    </div>
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>
