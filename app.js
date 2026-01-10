@@ -36,4 +36,9 @@ document.getElementById('checkBtn').onclick = async () => {
         console.error(e);
         alert("Ошибка доступа");
     }
+
 };
+
+msg.style.display = 'block';
+msg.style.opacity = '0';
+setTimeout(() => { msg.style.transition = 'opacity 2s'; msg.style.opacity = '1'; }, 10);
