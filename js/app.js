@@ -24,8 +24,12 @@ export function updateNavigation(user) {
 }
 
 // Инициализация
+//
 window.addEventListener('load', () => {
-    initAuthListener(() => handleRoute());
+    initAuthListener((user) => {
+        updateNavigation(user); // Обновляем меню при входе/выходе
+        handleRoute();
+    });
     window.addEventListener('hashchange', handleRoute);
 });
 
