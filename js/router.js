@@ -11,29 +11,37 @@ export function navigate(route) {
 
 export async function handleRoute() {
     const app = document.getElementById('app');
-    // Получаем путь, удаляя # и лишние слэши
+    // Получаем чистый путь из хэша
     let path = window.location.hash.slice(1);
     if (path.startsWith('/')) path = path.slice(1);
+    
     if (!path || path === '') path = 'home';
 
     const user = getCurrentUser();
     app.style.opacity = '0';
 
     setTimeout(async () => {
-        // 1. Проверка на публичную ссылку (slug)
-        const publicAch = await getAchievementBySlug(path);
-        
-        if (publicAch) {
-            renderSingleAchievement(app, publicAch);
-        } 
-        // 2. Стандартные страницы
-        else if (path === 'login') {
+        // Список зарезервированных системных путей
+        const systemPages = ['home', 'login', 'invite', 'profile', 'admin', 'users'];
+        const isSystem = systemPages.includes(path) || path.startsWith('user/');
+
+        if (!isSystem) {
+            // Если путь не системный, ищем достижение (публичный доступ)
+            const ach = await getAchievementBySlug(path);
+            if (ach) {
+                renderSingleAchievement(app, ach);
+                app.style.opacity = '1';
+                return;
+            }
+        }
+
+        // Обработка системных страниц
+        if (path === 'login') {
             renderLogin(app);
         } else if (path === 'invite') {
             renderInvite(app);
-        } 
-        // 3. Защищенные роуты
-        else {
+        } else {
+            // Защищенные страницы
             if (!user) { navigate('login'); return; }
 
             if (path.startsWith('user/')) {
