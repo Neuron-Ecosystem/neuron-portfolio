@@ -316,3 +316,16 @@ h1 { margin-bottom: 30px; font-weight: 800; }
     border-radius: 5px;
     box-shadow: 0 0 30px rgba(0,0,0,0.5);
 }
+#shareBtn {
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    z-index: 10;
+}
+
+#shareBtn:hover {
+    background: var(--primary) !important;
+}
+
+#shareBtn:hover span {
+    color: white !important;
+}
