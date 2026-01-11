@@ -1,274 +1,33 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neuron Portfolio | Elite Access</title>
-    <style>
-        :root {
-            --neon-green: #00ff95;
-            --dark-bg: #050505;
-            --glass-bg: rgba(20, 20, 20, 0.7);
-            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-            --font-main: 'Courier New', Courier, monospace;
-        }
-
-        body {
-            background-color: var(--dark-bg);
-            background-image: 
-                linear-gradient(rgba(0, 255, 149, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 149, 0.03) 1px, transparent 1px);
-            background-size: 30px 30px;
-            color: white;
-            font-family: var(--font-main);
-            margin: 0;
-            height: 100vh;
-            overflow: hidden; /* Чтобы не было скролла при анимациях */
-        }
-
-        /* --- LOGIN SECTION --- */
-        .login-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            padding: 40px;
-            border-radius: 16px;
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            border: var(--glass-border);
-            box-shadow: 0 0 30px rgba(0, 255, 149, 0.1);
-            width: 320px;
-            z-index: 10;
-            transition: all 0.5s ease;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            text-shadow: 0 0 10px var(--neon-green);
-        }
-
-        input {
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid #333;
-            color: var(--neon-green);
-            padding: 15px;
-            border-radius: 4px;
-            width: 100%;
-            box-sizing: border-box;
-            margin-bottom: 20px;
-            text-align: center;
-            outline: none;
-            font-family: inherit;
-            font-size: 1.1rem;
-            transition: border 0.3s;
-        }
-
-        input:focus {
-            border-color: var(--neon-green);
-            box-shadow: 0 0 10px rgba(0, 255, 149, 0.2);
-        }
-
-        button {
-            background: var(--neon-green);
-            color: black;
-            border: none;
-            padding: 15px;
-            border-radius: 4px;
-            width: 100%;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px rgba(0, 255, 149, 0.4);
-        }
-
-        /* --- DASHBOARD SECTION (Hidden by default) --- */
-        #dashboard {
-            display: none;
-            height: 100vh;
-            padding: 20px;
-            box-sizing: border-box;
-            grid-template-rows: auto 1fr;
-            gap: 20px;
-            animation: fadeIn 1s ease-in-out;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            background: var(--glass-bg);
-            border: var(--glass-border);
-            border-radius: 12px;
-        }
-
-        .user-status {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .avatar {
-            width: 50px;
-            height: 50px;
-            background: #222;
-            border: 2px solid var(--neon-green);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-
-        .grid-container {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 20px;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        .card {
-            background: var(--glass-bg);
-            border: var(--glass-border);
-            border-radius: 12px;
-            padding: 20px;
-            position: relative;
-            backdrop-filter: blur(10px);
-        }
-
-        .card h2 {
-            margin-top: 0;
-            border-bottom: 1px solid #333;
-            padding-bottom: 10px;
-            font-size: 1.2rem;
-            color: #ccc;
-        }
-
-        /* Digital Passport Stats */
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 15px 0;
-            font-size: 0.9rem;
-        }
-        .stat-val { color: var(--neon-green); }
-
-        /* Achievement Feed */
-        .feed {
-            height: 100%;
-            overflow-y: auto;
-        }
-        
-        .achievement-item {
-            background: rgba(255, 255, 255, 0.05);
-            margin-bottom: 10px;
-            padding: 15px;
-            border-left: 3px solid var(--neon-green);
-            border-radius: 0 8px 8px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        /* Actions */
-        .actions {
-            margin-top: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--neon-green);
-            color: var(--neon-green);
-        }
-        .btn-outline:hover {
-            background: rgba(0, 255, 149, 0.1);
-        }
-
-        #uploadInput { display: none; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-    </style>
+    <title>Neuron Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 </head>
-
 <body>
 
-    <div class="container login-container" id="login-card">
-        <h1>NEURON</h1>
-        <p style="color: #666; font-size: 0.8rem; margin-bottom: 20px;">SECURE TERMINAL V.2.0.26</p>
-        <input type="text" id="inviteInput" placeholder="ACCESS CODE" autocomplete="off">
-        <button id="checkBtn">CONNECT</button>
-        <div id="loginMsg" style="margin-top: 15px; color: #ff3333; display: none;"></div>
-    </div>
-
-    <div id="dashboard">
-        <header>
-            <div class="logo">NEURON // PORTFOLIO</div>
-            <div class="user-status">
-                <div style="text-align: right;">
-                    <div id="u-name" style="font-weight: bold; font-size: 1.2rem;">LOADING...</div>
-                    <div id="u-status" style="font-size: 0.8rem; color: #888;">INITIATING</div>
-                </div>
-                <div class="avatar" id="u-avatar">👤</div>
+    <nav class="navbar" id="navbar">
+        <div class="nav-brand">Neuron<span class="highlight">Portfolio</span></div>
+        <div class="nav-links" id="navLinks">
             </div>
-        </header>
+    </nav>
 
-        <div class="grid-container">
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-                <div class="card">
-                    <h2>DIGITAL PASSPORT</h2>
-                    <div class="stat-row"><span>ID:</span> <span id="p-id" class="stat-val">---</span></div>
-                    <div class="stat-row"><span>ACCESS LEVEL:</span> <span id="p-access" class="stat-val">---</span></div>
-                    <div class="stat-row"><span>XP:</span> <span id="p-xp" class="stat-val">0</span></div>
-                    <div class="stat-row"><span>RANK:</span> <span id="p-rank" class="stat-val">NOVICE</span></div>
-                </div>
+    <main id="app" class="container">
+        <div class="loading-spinner"></div>
+    </main>
 
-                <div class="card">
-                    <h2>MODULES</h2>
-                    <div class="actions">
-                        <button class="btn-outline" id="resumeBtn">📄 GEN. RESUME (PDF)</button>
-                        <button class="btn-outline" onclick="document.getElementById('uploadInput').click()">⬆ UPLOAD PROOF</button>
-                        <input type="file" id="uploadInput" accept="image/*">
-                        <div id="uploadStatus" style="font-size: 0.8rem; text-align: center; margin-top: 5px;"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h2>ACHIEVEMENT FEED</h2>
-                <div class="feed" id="achievementFeed">
-                    <div style="text-align: center; padding: 20px; color: #666;">
-                        SYNCING DATABASE...
-                    </div>
-                </div>
-            </div>
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn" id="closeModal">&times;</span>
+            <div id="modalBody"></div>
         </div>
     </div>
 
-    <script type="module" src="app.js"></script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
