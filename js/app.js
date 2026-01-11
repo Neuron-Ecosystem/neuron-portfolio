@@ -2,6 +2,27 @@ import { initAuthListener, validateInvite, registerWithInvite, login, getCurrent
 import { getFeed, createAchievement, updateStatus, deleteAchievement } from './db.js';
 import { handleRoute, navigate } from './router.js';
 
+//
+export function updateNavigation(user) {
+    const adminLink = document.querySelector('a[href="#admin"]');
+    const usersLink = document.querySelector('a[href="#users"]'); // Новая ссылка для админ-панели
+
+    if (!user) {
+        if (adminLink) adminLink.style.display = 'none';
+        return;
+    }
+
+    // Показываем модерацию только для admin и moder
+    if (adminLink) {
+        adminLink.style.display = (user.role === 'admin' || user.role === 'moder') ? 'block' : 'none';
+    }
+
+    // Ссылку на управление пользователями показываем только admin
+    if (usersLink) {
+        usersLink.style.display = (user.role === 'admin') ? 'block' : 'none';
+    }
+}
+
 // Инициализация
 window.addEventListener('load', () => {
     initAuthListener(() => handleRoute());
