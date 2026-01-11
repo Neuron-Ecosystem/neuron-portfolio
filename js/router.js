@@ -1,11 +1,6 @@
 import { 
-    renderFeed, 
-    renderLogin, 
-    renderInvite, 
-    renderProfile, 
-    renderAdmin, 
-    renderUserProfile, 
-    renderUsersAdmin 
+    renderFeed, renderLogin, renderInvite, renderProfile, 
+    renderAdmin, renderUserProfile, renderUsersAdmin 
 } from './app.js';
 import { getCurrentUser } from './auth.js';
 
@@ -18,24 +13,28 @@ export async function handleRoute() {
     const hash = window.location.hash.slice(1) || 'home';
     const user = getCurrentUser();
 
-    // Плавное скрытие перед сменой контента
+    // Если пользователь залогинен и пытается зайти на логин/инвайт — шлем его на главную
+    if (user && (hash === 'login' || hash === 'invite')) {
+        navigate('home');
+        return;
+    }
+
     app.style.opacity = '0';
 
     setTimeout(async () => {
-        // Экраны без авторизации
+        // Очищаем контейнер перед каждым рендером, чтобы избежать наложений
+        app.innerHTML = '';
+
         if (hash === 'login') {
             renderLogin(app);
         } else if (hash === 'invite') {
             renderInvite(app);
-        } 
-        // Экран чужого профиля
-        else if (hash.startsWith('user/')) {
+        } else if (hash.startsWith('user/')) {
             if (!user) { navigate('login'); return; }
             const userId = hash.split('/')[1];
             await renderUserProfile(app, userId);
-        } 
-        // Основные защищенные разделы
-        else {
+        } else {
+            // Если нет пользователя и мы не на страницах входа — редирект
             if (!user) { navigate('login'); return; }
 
             switch (hash) {
@@ -48,23 +47,17 @@ export async function handleRoute() {
                 case 'admin':
                     if (user.role === 'admin' || user.role === 'moder') {
                         await renderAdmin(app);
-                    } else {
-                        navigate('home');
-                    }
+                    } else { navigate('home'); }
                     break;
                 case 'users':
                     if (user.role === 'admin') {
                         await renderUsersAdmin(app);
-                    } else {
-                        navigate('home');
-                    }
+                    } else { navigate('home'); }
                     break;
                 default:
                     await renderFeed(app);
             }
         }
-        
-        // Плавное появление
         app.style.opacity = '1';
     }, 250);
 }
