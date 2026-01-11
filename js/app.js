@@ -385,3 +385,43 @@ function openAddModal(user) {
     };
     document.getElementById('closeModal').onclick = () => modal.classList.add('hidden');
 }
+
+//
+export async function renderUsersAdmin(container) {
+    const user = getCurrentUser();
+    if (user?.role !== 'admin') { navigate('home'); return; }
+
+    container.innerHTML = wrap(`
+        <h1>Управление пользователями</h1>
+        <div id="usersList" class="grid" style="margin-top:20px"></div>
+    `);
+
+    const users = await getAllUsers();
+    const list = document.getElementById('usersList');
+
+    users.forEach(u => {
+        if (u.uid === user.uid) return; // Себя блокировать нельзя
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <div class="card-body">
+                <b>${u.firstName} ${u.lastName}</b>
+                <p class="meta">Роль: ${u.role} | Класс: ${u.class?.grade}${u.class?.letter}</p>
+                <div style="margin-top:15px">
+                    <button class="btn ${u.isActive ? 'btn-danger' : 'btn-primary'} block-btn" style="width:100%">
+                        ${u.isActive ? 'Заблокировать' : 'Разблокировать'}
+                    </button>
+                </div>
+            </div>
+        `;
+
+        card.querySelector('.block-btn').onclick = async () => {
+            if (confirm(`Вы уверены, что хотите ${u.isActive ? 'заблокировать' : 'разблокировать'} этого пользователя?`)) {
+                await toggleUserActive(u.uid, u.isActive);
+                renderUsersAdmin(container); // Перерисовываем
+            }
+        };
+        list.appendChild(card);
+    });
+}
