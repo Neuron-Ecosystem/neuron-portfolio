@@ -1,4 +1,12 @@
-import { renderFeed, renderLogin, renderInvite, renderProfile, renderAdmin, renderUserProfile, renderUsersAdmin } from './app.js';
+import { 
+    renderFeed, 
+    renderLogin, 
+    renderInvite, 
+    renderProfile, 
+    renderAdmin, 
+    renderUserProfile, 
+    renderUsersAdmin 
+} from './app.js';
 import { getCurrentUser } from './auth.js';
 
 export function navigate(route) {
@@ -10,11 +18,11 @@ export async function handleRoute() {
     const hash = window.location.hash.slice(1) || 'home';
     const user = getCurrentUser();
 
-    // Плавное скрытие перед сменой
+    // Плавное скрытие перед сменой контента
     app.style.opacity = '0';
 
     setTimeout(async () => {
-        // Экраны доступные без логина
+        // Экраны без авторизации
         if (hash === 'login') {
             renderLogin(app);
         } else if (hash === 'invite') {
@@ -26,7 +34,7 @@ export async function handleRoute() {
             const userId = hash.split('/')[1];
             await renderUserProfile(app, userId);
         } 
-        // Защищенные маршруты
+        // Основные защищенные разделы
         else {
             if (!user) { navigate('login'); return; }
 
@@ -44,7 +52,7 @@ export async function handleRoute() {
                         navigate('home');
                     }
                     break;
-                case 'users': // ТУТ БЫЛА ОШИБКА: теперь это внутри switch
+                case 'users':
                     if (user.role === 'admin') {
                         await renderUsersAdmin(app);
                     } else {
@@ -56,6 +64,7 @@ export async function handleRoute() {
             }
         }
         
+        // Плавное появление
         app.style.opacity = '1';
     }, 250);
 }
