@@ -88,3 +88,16 @@ export async function deleteAchievement(id) {
     // Примечание: Мы не можем автоматически удалить картинку с ImgBB через API без сложной логики парсинга delete_url.
     // Файлы останутся на хостинге ImgBB, но исчезнут из приложения.
 }
+
+// Импортируйте setDoc и другие нужные методы в начало файла, если их нет
+export async function getAllUsers() {
+    const snapshot = await getDocs(collection(db, "users"));
+    return snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+}
+
+export async function toggleUserActive(uid, currentStatus) {
+    const userRef = doc(db, "users", uid);
+    await updateDoc(userRef, {
+        isActive: !currentStatus
+    });
+}
