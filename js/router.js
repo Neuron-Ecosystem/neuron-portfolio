@@ -54,3 +54,9 @@ export async function handleRoute() {
         app.style.opacity = '1';
     }, 250);
 }
+
+// Добавьте renderUsersAdmin в импорт из app.js
+// ... в switch(hash) ...
+case 'users':
+    await renderUsersAdmin(app);
+    break;
