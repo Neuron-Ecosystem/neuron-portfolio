@@ -1,4 +1,4 @@
-import { renderFeed, renderLogin, renderInvite, renderProfile, renderAdmin, renderUserProfile } from './app.js';
+import { renderFeed, renderLogin, renderInvite, renderProfile, renderAdmin, renderUserProfile, renderUsersAdmin } from './app.js';
 import { getCurrentUser } from './auth.js';
 
 export function navigate(route) {
@@ -20,13 +20,13 @@ export async function handleRoute() {
         } else if (hash === 'invite') {
             renderInvite(app);
         } 
-        // Экран чужого профиля (доступен всем залогиненным)
+        // Экран чужого профиля
         else if (hash.startsWith('user/')) {
             if (!user) { navigate('login'); return; }
             const userId = hash.split('/')[1];
             await renderUserProfile(app, userId);
         } 
-        // Главная лента и кабинет
+        // Защищенные маршруты
         else {
             if (!user) { navigate('login'); return; }
 
@@ -38,9 +38,15 @@ export async function handleRoute() {
                     await renderProfile(app, user);
                     break;
                 case 'admin':
-                    // Проверка прав для админ-панели
                     if (user.role === 'admin' || user.role === 'moder') {
                         await renderAdmin(app);
+                    } else {
+                        navigate('home');
+                    }
+                    break;
+                case 'users': // ТУТ БЫЛА ОШИБКА: теперь это внутри switch
+                    if (user.role === 'admin') {
+                        await renderUsersAdmin(app);
                     } else {
                         navigate('home');
                     }
@@ -50,13 +56,6 @@ export async function handleRoute() {
             }
         }
         
-        // Плавное появление
         app.style.opacity = '1';
     }, 250);
 }
-
-// Добавьте renderUsersAdmin в импорт из app.js
-// ... в switch(hash) ...
-case 'users':
-    await renderUsersAdmin(app);
-    break;
