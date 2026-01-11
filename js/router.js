@@ -10,26 +10,25 @@ export async function handleRoute() {
     const hash = window.location.hash.slice(1) || 'home';
     const user = getCurrentUser();
 
-    // Добавляем класс для анимации исчезновения перед сменой контента
-    app.classList.remove('page-transition');
+    // Плавное скрытие перед сменой
     app.style.opacity = '0';
 
     setTimeout(async () => {
-        // Логика маршрутизации
+        // Экраны доступные без логина
         if (hash === 'login') {
             renderLogin(app);
         } else if (hash === 'invite') {
             renderInvite(app);
-        } else if (hash.startsWith('user/')) {
-            // Маршрут для просмотра чужого профиля: #user/ID_ПОЛЬЗОВАТЕЛЯ
+        } 
+        // Экран чужого профиля (доступен всем залогиненным)
+        else if (hash.startsWith('user/')) {
+            if (!user) { navigate('login'); return; }
             const userId = hash.split('/')[1];
             await renderUserProfile(app, userId);
-        } else {
-            // Защищенные маршруты
-            if (!user) {
-                navigate('login');
-                return;
-            }
+        } 
+        // Главная лента и кабинет
+        else {
+            if (!user) { navigate('login'); return; }
 
             switch (hash) {
                 case 'home':
@@ -39,6 +38,7 @@ export async function handleRoute() {
                     await renderProfile(app, user);
                     break;
                 case 'admin':
+                    // Проверка прав для админ-панели
                     if (user.role === 'admin' || user.role === 'moder') {
                         await renderAdmin(app);
                     } else {
@@ -50,8 +50,7 @@ export async function handleRoute() {
             }
         }
         
-        // Включаем анимацию появления
-        app.classList.add('page-transition');
+        // Плавное появление
         app.style.opacity = '1';
-    }, 200);
+    }, 250);
 }
