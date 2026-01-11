@@ -11,31 +11,35 @@ export function navigate(route) {
 
 export async function handleRoute() {
     const app = document.getElementById('app');
-    const hash = window.location.hash.slice(1) || 'home';
-    const user = getCurrentUser();
+    // Получаем путь, удаляя # и лишние слэши
+    let path = window.location.hash.slice(1);
+    if (path.startsWith('/')) path = path.slice(1);
+    if (!path || path === '') path = 'home';
 
+    const user = getCurrentUser();
     app.style.opacity = '0';
 
     setTimeout(async () => {
-        // 1. Проверка на публичный Slug (Доступно всем)
-        const publicAch = await getAchievementBySlug(hash);
+        // 1. Проверка на публичную ссылку (slug)
+        const publicAch = await getAchievementBySlug(path);
+        
         if (publicAch) {
             renderSingleAchievement(app, publicAch);
         } 
-        // 2. Экраны входа/инвайта
-        else if (hash === 'login') {
+        // 2. Стандартные страницы
+        else if (path === 'login') {
             renderLogin(app);
-        } else if (hash === 'invite') {
+        } else if (path === 'invite') {
             renderInvite(app);
         } 
         // 3. Защищенные роуты
         else {
             if (!user) { navigate('login'); return; }
 
-            if (hash.startsWith('user/')) {
-                await renderUserProfile(app, hash.split('/')[1]);
+            if (path.startsWith('user/')) {
+                await renderUserProfile(app, path.split('/')[1]);
             } else {
-                switch (hash) {
+                switch (path) {
                     case 'home': await renderFeed(app); break;
                     case 'profile': await renderProfile(app, user); break;
                     case 'admin':
