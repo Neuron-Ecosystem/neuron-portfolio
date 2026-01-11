@@ -1,42 +1,49 @@
-import { initAuthListener, validateInvite, registerWithInvite, login, getCurrentUser } from './auth.js';
-import { getFeed, createAchievement, updateStatus, deleteAchievement } from './db.js';
+import { initAuthListener, validateInvite, registerWithInvite, login, logout, getCurrentUser } from './auth.js';
+import { getFeed, createAchievement, updateStatus, deleteAchievement, getAllUsers, toggleUserActive } from './db.js';
 import { handleRoute, navigate } from './router.js';
 
-//
-export function updateNavigation(user) {
-    const adminLink = document.querySelector('a[href="#admin"]');
-    const usersLink = document.querySelector('a[href="#users"]'); // Новая ссылка для админ-панели
-
-    if (!user) {
-        if (adminLink) adminLink.style.display = 'none';
-        return;
-    }
-
-    // Показываем модерацию только для admin и moder
-    if (adminLink) {
-        adminLink.style.display = (user.role === 'admin' || user.role === 'moder') ? 'block' : 'none';
-    }
-
-    // Ссылку на управление пользователями показываем только admin
-    if (usersLink) {
-        usersLink.style.display = (user.role === 'admin') ? 'block' : 'none';
-    }
-}
-
-// Инициализация
-//
+// Инициализация при загрузке
 window.addEventListener('load', () => {
     initAuthListener((user) => {
-        updateNavigation(user); // Обновляем меню при входе/выходе
+        updateNavigation(user);
         handleRoute();
     });
     window.addEventListener('hashchange', handleRoute);
 });
 
+// Слушатель для кнопки выхода (в index.html)
+document.addEventListener('click', (e) => {
+    if (e.target.closest('#logoutBtn')) {
+        if (confirm('Выйти из системы?')) logout();
+    }
+});
+
 // Вспомогательная функция для анимации
 const wrap = (content) => `<div class="page-transition">${content}</div>`;
 
-// --- АВТОРИЗАЦИЯ ---
+// Управление видимостью меню
+export function updateNavigation(user) {
+    const adminLink = document.querySelector('a[href="#admin"]');
+    const usersLink = document.querySelector('a[href="#users"]');
+
+    if (!user) {
+        if (adminLink) adminLink.style.display = 'none';
+        if (usersLink) usersLink.style.display = 'none';
+        return;
+    }
+
+    // Модерация видна Admin и Moder
+    if (adminLink) {
+        adminLink.style.display = (user.role === 'admin' || user.role === 'moder') ? 'inline-block' : 'none';
+    }
+
+    // Управление пользователями только для Admin
+    if (usersLink) {
+        usersLink.style.display = (user.role === 'admin') ? 'inline-block' : 'none';
+    }
+}
+
+// --- СТРАНИЦЫ АВТОРИЗАЦИИ ---
 
 export function renderInvite(container) {
     container.innerHTML = wrap(`
@@ -56,32 +63,28 @@ export function renderInvite(container) {
                     <input type="email" id="regEmail" class="input-field" placeholder="example@mail.com">
                 </div>
                 <div class="input-group">
-                    <label>Пароль (от 6 символов)</label>
-                    <input type="password" id="regPass" class="input-field">
+                    <label>Пароль</label>
+                    <input type="password" id="regPass" class="input-field" placeholder="Минимум 6 символов">
                 </div>
-                <button id="regBtn" class="btn btn-primary" style="width:100%; background:var(--success)">Завершить регистрацию</button>
+                <button id="regBtn" class="btn btn-primary" style="width:100%">Создать аккаунт</button>
             </div>
         </div>
     `);
 
-    let inviteData = null;
     document.getElementById('checkBtn').onclick = async () => {
         const code = document.getElementById('inviteCode').value.trim();
         try {
-            inviteData = await validateInvite(code);
-            document.getElementById('regName').innerText = inviteData.firstName + " " + inviteData.lastName;
+            const data = await validateInvite(code);
+            document.getElementById('regName').innerText = data.firstName;
             document.getElementById('inviteStep').style.display = 'none';
             document.getElementById('regForm').classList.remove('hidden');
-        } catch (e) { alert("Код не найден или уже использован"); }
-    };
-
-    document.getElementById('regBtn').onclick = async () => {
-        const email = document.getElementById('regEmail').value;
-        const pass = document.getElementById('regPass').value;
-        if (pass.length < 6) return alert("Пароль слишком короткий");
-        try {
-            await registerWithInvite(email, pass, document.getElementById('inviteCode').value, inviteData);
-            navigate('home');
+            
+            document.getElementById('regBtn').onclick = async () => {
+                const email = document.getElementById('regEmail').value;
+                const pass = document.getElementById('regPass').value;
+                await registerWithInvite(email, pass, code, data);
+                navigate('home');
+            };
         } catch (e) { alert(e.message); }
     };
 }
@@ -100,36 +103,27 @@ export function renderLogin(container) {
             </div>
             <button id="loginBtn" class="btn btn-primary" style="width:100%">Войти</button>
             <p style="text-align:center; margin-top:15px; font-size:0.8rem">
-                Есть код? <a href="#invite" style="color:var(--primary)">Активировать</a>
+                Нет аккаунта? <a href="#invite" style="color:var(--primary)">Активировать инвайт</a>
             </p>
         </div>
     `);
-
     document.getElementById('loginBtn').onclick = async () => {
         try {
             await login(document.getElementById('lEmail').value, document.getElementById('lPass').value);
             navigate('home');
-        } catch (e) { alert("Ошибка входа"); }
+        } catch (e) { alert("Ошибка входа: проверьте данные"); }
     };
 }
 
-// --- ЛЕНТА ---
+// --- ЛЕНТА И ПРОФИЛИ ---
 
 export async function renderFeed(container) {
-    container.innerHTML = wrap(`
-        <header>
-            <h1>Лента успехов</h1>
-            <p class="meta">Достижения учеников Neuron Ecosystem</p>
-        </header>
-        <div id="feedGrid" class="grid" style="margin-top:20px"></div>
-    `);
-
+    container.innerHTML = wrap(`<h1>Лента успехов</h1><div id="feedGrid" class="grid"></div>`);
     const achievements = await getFeed();
     const grid = document.getElementById('feedGrid');
     const user = getCurrentUser();
 
     achievements.forEach(ach => {
-        // Показываем если одобрено, или если это мое, или я админ
         const canSee = ach.status === 'approved' || (user && (user.uid === ach.userId || user.role !== 'people'));
         if (!canSee) return;
 
@@ -138,48 +132,34 @@ export async function renderFeed(container) {
         card.innerHTML = `
             <div class="card-body">
                 <div class="card-header-top">
-                    <span class="profile-link" data-uid="${ach.userId}">${ach.userName.toUpperCase()}</span>
-                    <div style="font-size:0.75rem; color:var(--text-muted)">${ach.userClass}</div>
+                    <b class="profile-link" data-uid="${ach.userId}">${ach.userName.toUpperCase()}</b>
+                    <span class="meta">${ach.userClass}</span>
                 </div>
-                <div class="card-title" style="margin-top:10px">${ach.title}</div>
+                <div class="card-title">${ach.title}</div>
                 <div class="meta">${ach.result} | ${ach.level}</div>
                 <div style="margin-top:10px"><span class="badge ${ach.status}">${ach.status}</span></div>
             </div>
         `;
-
         card.querySelector('.profile-link').onclick = (e) => {
             e.stopPropagation();
             navigate(`user/${e.target.dataset.uid}`);
         };
-
-        card.onclick = (e) => {
-            if (!e.target.classList.contains('profile-link')) openDetailsModal(ach);
-        };
-
+        card.onclick = () => openDetailsModal(ach);
         grid.appendChild(card);
     });
 }
 
-// --- ПРОФИЛИ ---
-
 export async function renderUserProfile(container, userId) {
     const all = await getFeed();
-    const userAch = all.filter(a => a.userId === userId && a.status === 'approved');
-    
-    // Пытаемся найти данные пользователя (хотя бы из одного достижения)
     const info = all.find(a => a.userId === userId);
-    if (!info) {
-        container.innerHTML = `<button onclick="navigate('home')" class="btn">← Назад</button><p>Профиль не найден</p>`;
-        return;
-    }
+    const userAch = all.filter(a => a.userId === userId && a.status === 'approved');
 
     container.innerHTML = wrap(`
         <button onclick="window.history.back()" class="btn" style="margin-bottom:20px">← Назад</button>
-        <div class="card" style="padding:25px; border-top:4px solid var(--primary); margin-bottom:30px">
-            <h1 style="margin:0">${info.userName}</h1>
-            <p class="meta" style="font-size:1.1rem">${info.userClass}</p>
+        <div class="card" style="margin-bottom:30px">
+            <h1>${info ? info.userName : 'Пользователь'}</h1>
+            <p class="meta">${info ? info.userClass : ''}</p>
         </div>
-        <h3>Достижения (${userAch.length})</h3>
         <div class="grid" id="userGrid"></div>
     `);
 
@@ -187,7 +167,7 @@ export async function renderUserProfile(container, userId) {
     userAch.forEach(ach => {
         const item = document.createElement('div');
         item.className = 'card';
-        item.innerHTML = `<div class="card-body"><div class="card-title">${ach.title}</div><p class="meta">${ach.result}</p></div>`;
+        item.innerHTML = `<h3>${ach.title}</h3><p class="meta">${ach.result}</p>`;
         item.onclick = () => openDetailsModal(ach);
         grid.appendChild(item);
     });
@@ -195,120 +175,118 @@ export async function renderUserProfile(container, userId) {
 
 export async function renderProfile(container, user) {
     container.innerHTML = wrap(`
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px">
+        <div style="display:flex; justify-content:space-between; align-items:center">
             <h1>Мой кабинет</h1>
-            ${user.role === 'people' ? `<button id="addBtn" class="btn btn-primary">+ Добавить достижение</button>` : ''}
+            ${user.role === 'people' ? `<button id="addBtn" class="btn btn-primary">+ Добавить</button>` : ''}
         </div>
-        <div class="card" style="padding:20px; margin-bottom:30px; border-left:4px solid var(--accent)">
-            <b style="font-size:1.2rem">${user.firstName} ${user.lastName}</b><br>
-            <span class="meta">${user.class.grade}${user.class.letter} • Роль: ${user.role}</span>
+        <div class="card" style="margin:20px 0; border-left:4px solid var(--primary)">
+            <b>${user.firstName} ${user.lastName}</b>
+            <p class="meta">${user.class.grade}${user.class.letter} | Роль: ${user.role}</p>
         </div>
-        <h3>Мои загрузки</h3>
         <div id="myGrid" class="grid"></div>
     `);
 
-    if (document.getElementById('addBtn')) document.getElementById('addBtn').onclick = () => openAddModal(user);
+    if(document.getElementById('addBtn')) {
+        document.getElementById('addBtn').onclick = () => openAddModal(user);
+    }
 
     const all = await getFeed();
     const my = all.filter(a => a.userId === user.uid);
     const grid = document.getElementById('myGrid');
-    
+
     my.forEach(ach => {
         const card = document.createElement('div');
         card.className = 'card';
-        card.innerHTML = `
-            <div class="card-body">
-                <span class="badge ${ach.status}">${ach.status}</span>
-                <div class="card-title" style="margin-top:10px">${ach.title}</div>
-                <p class="meta">${ach.result}</p>
-            </div>
-        `;
+        card.innerHTML = `<span class="badge ${ach.status}">${ach.status}</span><h3>${ach.title}</h3>`;
         card.onclick = () => openDetailsModal(ach);
         grid.appendChild(card);
     });
 }
 
-// --- АДМИН ПАНЕЛЬ ---
+// --- АДМИН-ПАНЕЛИ ---
 
 export async function renderAdmin(container) {
-    container.innerHTML = wrap(`
-        <h1>Панель модерации</h1>
-        <p class="meta">Подтверждение новых достижений</p>
-        <div id="adminQueue" class="grid" style="margin-top:20px"></div>
-    `);
-
+    container.innerHTML = wrap(`<h1>Модерация</h1><div id="adminQueue" class="grid"></div>`);
     const all = await getFeed();
     const pending = all.filter(a => a.status === 'pending');
     const queue = document.getElementById('adminQueue');
-
-    if (pending.length === 0) {
-        queue.innerHTML = `<div class="card" style="padding:20px; color:var(--text-muted)">Новых заявок нет</div>`;
-    }
 
     pending.forEach(item => {
         const div = document.createElement('div');
         div.className = 'card';
         div.innerHTML = `
             <div class="card-body">
-                <div class="card-header-top"><b>${item.userName}</b> (${item.userClass})</div>
+                <b>${item.userName}</b>
                 <div class="card-title">${item.title}</div>
-                <p class="meta">Результат: ${item.result}</p>
                 <div style="display:flex; gap:10px; margin-top:15px">
-                    <button class="btn btn-primary ok-btn" style="flex:1; background:var(--success)">Одобрить</button>
+                    <button class="btn btn-primary ok-btn" style="flex:1">Одобрить</button>
                     <button class="btn btn-danger no-btn" style="flex:1">Отклонить</button>
                 </div>
             </div>
         `;
-
         div.querySelector('.ok-btn').onclick = async () => {
-            if (confirm("Одобрить это достижение?")) {
-                await updateStatus(item.id, 'approved', getCurrentUser().lastName);
-                renderAdmin(container);
-            }
+            await updateStatus(item.id, 'approved', getCurrentUser().lastName);
+            renderAdmin(container);
         };
-
         div.querySelector('.no-btn').onclick = async () => {
-            if (confirm("Отклонить это достижение?")) {
-                await updateStatus(item.id, 'rejected', getCurrentUser().lastName);
-                renderAdmin(container);
-            }
+            await updateStatus(item.id, 'rejected', getCurrentUser().lastName);
+            renderAdmin(container);
         };
-
-        div.onclick = (e) => {
-            if (!e.target.classList.contains('btn')) openDetailsModal(item);
-        };
-
         queue.appendChild(div);
     });
 }
 
-// --- МОДАЛКИ ---
+export async function renderUsersAdmin(container) {
+    const user = getCurrentUser();
+    if (user?.role !== 'admin') { navigate('home'); return; }
+
+    container.innerHTML = wrap(`<h1>Пользователи</h1><div id="usersList" class="grid"></div>`);
+    const users = await getAllUsers();
+    const list = document.getElementById('usersList');
+
+    users.forEach(u => {
+        if (u.uid === user.uid) return;
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <div class="card-body">
+                <div class="card-header-top">
+                    <b>${u.firstName} ${u.lastName}</b>
+                    <span class="badge ${u.isActive ? 'approved' : 'rejected'}">${u.isActive ? 'Active' : 'Banned'}</span>
+                </div>
+                <p class="meta">Роль: ${u.role}</p>
+                <button class="btn ${u.isActive ? 'btn-danger' : 'btn-primary'} toggle-btn" style="width:100%; margin-top:15px">
+                    ${u.isActive ? 'Заблокировать' : 'Разблокировать'}
+                </button>
+            </div>
+        `;
+        card.querySelector('.toggle-btn').onclick = async () => {
+            await toggleUserActive(u.uid, u.isActive);
+            renderUsersAdmin(container);
+        };
+        list.appendChild(card);
+    });
+}
+
+// --- МОДАЛЬНЫЕ ОКНА ---
 
 function openDetailsModal(ach) {
     const modal = document.getElementById('modal');
     const body = document.getElementById('modalBody');
     modal.classList.remove('hidden');
     
-    const imgs = ach.documents?.map(d => `
-        <div style="margin-top:15px">
-            <img src="${d.url}" style="width:100%; border-radius:10px; border:1px solid #334155">
-        </div>
-    `).join('') || '<p>Фото не приложено</p>';
-
     body.innerHTML = `
-        <div class="card-header-top" style="margin-bottom:15px">
-            <span class="profile-link" onclick="window.location.hash='user/${ach.userId}'">${ach.userName.toUpperCase()}</span>
+        <h2>${ach.title}</h2>
+        <p class="meta">${ach.userName} | ${ach.result}</p>
+        <div style="margin-top:20px">
+            ${ach.documents?.map(d => `<img src="${d.url}" style="width:100%; border-radius:10px; margin-bottom:10px; border:1px solid #334155">`).join('')}
         </div>
-        <span class="badge ${ach.status}">${ach.status}</span>
-        <h2 style="margin-top:10px">${ach.title}</h2>
-        <p class="meta">${ach.type} | ${ach.level} | ${ach.result}</p>
-        <div class="docs-view">${imgs}</div>
-        ${getCurrentUser()?.role === 'admin' ? `<button id="delBtn" class="btn btn-danger" style="width:100%; margin-top:20px">Удалить запись</button>` : ''}
+        ${getCurrentUser()?.role === 'admin' ? `<button id="delBtn" class="btn btn-danger" style="width:100%">Удалить запись</button>` : ''}
     `;
 
     if (document.getElementById('delBtn')) {
         document.getElementById('delBtn').onclick = async () => {
-            if (confirm("Удалить безвозвратно?")) {
+            if (confirm('Удалить навсегда?')) {
                 await deleteAchievement(ach.id);
                 modal.classList.add('hidden');
                 handleRoute();
@@ -324,49 +302,29 @@ function openAddModal(user) {
     modal.classList.remove('hidden');
     
     body.innerHTML = `
-        <h2>Добавить достижение</h2>
-        <div class="input-group">
-            <label>Название мероприятия</label>
-            <input type="text" id="aTitle" class="input-field" placeholder="Напр: Олимпиада по химии">
-        </div>
-        <div class="input-group">
-            <label>Ваш результат</label>
-            <select id="aResult" class="input-field">
-                <option>участник</option>
-                <option>призёр</option>
-                <option>победитель</option>
-            </select>
-        </div>
-        <div class="input-group">
-            <label>Уровень</label>
-            <select id="aLevel" class="input-field">
-                <option>школьный</option>
-                <option>районный</option>
-                <option>региональный</option>
-                <option>всероссийский</option>
-            </select>
-        </div>
-        <div class="input-group">
-            <label>Фотографии (ImgBB)</label>
-            <input type="file" id="aFiles" multiple accept="image/*" class="input-field">
-        </div>
-        <button id="sendBtn" class="btn btn-primary" style="width:100%; margin-top:15px; height:50px">Отправить на проверку</button>
+        <h2>Новое достижение</h2>
+        <input type="text" id="aTitle" class="input-field" placeholder="Название мероприятия">
+        <select id="aResult" class="input-field">
+            <option>участник</option><option>призёр</option><option>победитель</option>
+        </select>
+        <select id="aLevel" class="input-field">
+            <option>школьный</option><option>районный</option><option>региональный</option><option>всероссийский</option>
+        </select>
+        <input type="file" id="aFiles" multiple class="input-field">
+        <button id="sendBtn" class="btn btn-primary" style="width:100%; margin-top:10px">Отправить на проверку</button>
     `;
 
     document.getElementById('sendBtn').onclick = async () => {
         const files = document.getElementById('aFiles').files;
-        const title = document.getElementById('aTitle').value.trim();
-        if (!title || files.length === 0) return alert("Заполните название и выберите фото");
-
+        if (files.length === 0) return alert('Прикрепите фото!');
+        
         const btn = document.getElementById('sendBtn');
-        btn.disabled = true;
-        btn.innerText = "Загрузка данных...";
+        btn.disabled = true; btn.innerText = 'Загрузка...';
 
         const data = {
-            title: title,
+            title: document.getElementById('aTitle').value,
             result: document.getElementById('aResult').value,
             level: document.getElementById('aLevel').value,
-            type: "достижение",
             userId: user.uid,
             userName: `${user.firstName} ${user.lastName}`,
             userClass: `${user.class.grade}${user.class.letter}`,
@@ -377,51 +335,7 @@ function openAddModal(user) {
             await createAchievement(data, files);
             modal.classList.add('hidden');
             handleRoute();
-        } catch (e) { 
-            alert("Ошибка: " + e.message); 
-            btn.disabled = false; 
-            btn.innerText = "Отправить на проверку";
-        }
+        } catch (e) { alert(e.message); btn.disabled = false; }
     };
     document.getElementById('closeModal').onclick = () => modal.classList.add('hidden');
-}
-
-//
-export async function renderUsersAdmin(container) {
-    const user = getCurrentUser();
-    if (user?.role !== 'admin') { navigate('home'); return; }
-
-    container.innerHTML = wrap(`
-        <h1>Управление пользователями</h1>
-        <div id="usersList" class="grid" style="margin-top:20px"></div>
-    `);
-
-    const users = await getAllUsers();
-    const list = document.getElementById('usersList');
-
-    users.forEach(u => {
-        if (u.uid === user.uid) return; // Себя блокировать нельзя
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <div class="card-body">
-                <b>${u.firstName} ${u.lastName}</b>
-                <p class="meta">Роль: ${u.role} | Класс: ${u.class?.grade}${u.class?.letter}</p>
-                <div style="margin-top:15px">
-                    <button class="btn ${u.isActive ? 'btn-danger' : 'btn-primary'} block-btn" style="width:100%">
-                        ${u.isActive ? 'Заблокировать' : 'Разблокировать'}
-                    </button>
-                </div>
-            </div>
-        `;
-
-        card.querySelector('.block-btn').onclick = async () => {
-            if (confirm(`Вы уверены, что хотите ${u.isActive ? 'заблокировать' : 'разблокировать'} этого пользователя?`)) {
-                await toggleUserActive(u.uid, u.isActive);
-                renderUsersAdmin(container); // Перерисовываем
-            }
-        };
-        list.appendChild(card);
-    });
 }
